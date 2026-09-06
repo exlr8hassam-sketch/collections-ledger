@@ -405,8 +405,10 @@ Support Contact: {self.payment_info['support_contact']}
             clients[target_idx] = target
             self.save_clients(clients)
 
+        err_msg = getattr(self.dispatcher, 'last_error', None)
         return {
             "success": sent,
+            "error": err_msg or ("WhatsApp is not ready. Please scan the QR code or link your phone." if not sent else None),
             "client_id": client_id,
             "name": target.get("client_name"),
             "phone": phone,

@@ -148,7 +148,7 @@ def get_whatsapp_qr():
     """Proxies the WhatsApp QR code image so it works on mobile devices and over the internet."""
     bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
     try:
-        resp = requests.get(f"{bridge_url}/qr", timeout=3)
+        resp = requests.get(f"{bridge_url}/qr-img", timeout=3)
         if resp.status_code == 200:
             return Response(content=resp.content, media_type="image/png")
     except Exception:

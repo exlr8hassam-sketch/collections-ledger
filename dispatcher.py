@@ -171,6 +171,7 @@ class WhatsAppDispatcher(BaseDispatcher):
     """
     def __init__(self, bridge_url: str = "http://localhost:3000"):
         self.bridge_url = bridge_url
+        self.last_error = None
 
     def send(self, to: str, message: str, client_info: Dict[str, Any]) -> bool:
         url = f"{self.bridge_url}/send"
@@ -182,17 +183,25 @@ class WhatsAppDispatcher(BaseDispatcher):
             resp = requests.post(url, json=payload, timeout=30)
             if resp.status_code == 200 and resp.json().get("success"):
                 logger.info(f"Successfully sent WhatsApp message to {to}")
+                self.last_error = None
                 return True
             else:
-                logger.error(f"WhatsApp bridge returned error: {resp.text}")
+                try:
+                    err_json = resp.json()
+                    self.last_error = err_json.get("error") or resp.text
+                except Exception:
+                    self.last_error = resp.text or f"WhatsApp bridge HTTP {resp.status_code}"
+                logger.error(f"WhatsApp bridge returned error: {self.last_error}")
                 return False
         except requests.exceptions.ConnectionError:
+            self.last_error = "Cannot connect to WhatsApp bridge service."
             logger.error(
                 f"Cannot connect to WhatsApp bridge at {self.bridge_url}. "
                 f"Please start the bridge in a separate terminal: cd whatsapp-bridge && npm start"
             )
             return False
         except Exception as e:
+            self.last_error = str(e)
             logger.error(f"WhatsApp dispatch failed: {e}")
             return False
 
@@ -210,11 +219,18 @@ class WhatsAppDispatcher(BaseDispatcher):
             resp = requests.post(url, json=payload, timeout=45)
             if resp.status_code == 200 and resp.json().get("success"):
                 logger.info(f"Successfully sent WhatsApp PDF document to {to} ({filename})")
+                self.last_error = None
                 return True
             else:
-                logger.error(f"WhatsApp bridge returned error sending PDF: {resp.text}. Falling back to text.")
+                try:
+                    err_json = resp.json()
+                    self.last_error = err_json.get("error") or resp.text
+                except Exception:
+                    self.last_error = resp.text
+                logger.error(f"WhatsApp bridge returned error sending PDF: {self.last_error}. Falling back to text.")
                 return self.send(to, caption, client_info)
         except Exception as e:
+            self.last_error = str(e)
             logger.error(f"WhatsApp PDF dispatch failed: {e}. Falling back to text.")
             return self.send(to, caption, client_info)
 

@@ -1602,7 +1602,11 @@
           closePreviewModal();
           loadClients();
         } else {
-          showToast("Dispatch Failed", data.error || data.detail || "Could not send WhatsApp text", true);
+          const errMsg = data.error || data.detail || "WhatsApp is not linked or ready. Please link your phone.";
+          showToast("WhatsApp Not Linked", errMsg, true);
+          if (errMsg.toLowerCase().includes("not ready") || errMsg.toLowerCase().includes("qr") || errMsg.toLowerCase().includes("link")) {
+            setTimeout(() => { openWhatsAppModal(); }, 1000);
+          }
         }
       } catch (err) {
         showToast("Error", err.message, true);
