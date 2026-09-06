@@ -565,11 +565,15 @@
             </a>
           </div>
 
-          <div class="flex items-center gap-2 justify-end">
-            <button type="button" onclick="closePreviewModal()" class="px-4 py-2 text-xs font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors">Cancel</button>
-            <button type="button" onclick="sendSingleReminderFromModal()" id="btn-modal-send" class="px-5 py-2 text-xs font-bold text-white bg-wa hover:bg-wa-hover rounded-xl shadow-sm flex items-center justify-center gap-1.5 flex-1 sm:flex-none transition-all">
+          <div class="flex items-center gap-2 justify-end flex-wrap">
+            <button type="button" onclick="closePreviewModal()" class="px-3.5 py-2 text-xs font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors">Cancel</button>
+            <button type="button" onclick="openDirectWhatsApp()" class="px-4 py-2 text-xs font-bold text-wa hover:bg-wa/10 border border-wa/30 rounded-xl flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              Open in WhatsApp (1-Tap)
+            </button>
+            <button type="button" onclick="sendSingleReminderFromModal()" id="btn-modal-send" class="px-5 py-2 text-xs font-bold text-white bg-wa hover:bg-wa-hover rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition-all">
               <i data-lucide="send" class="w-3.5 h-3.5"></i>
-              Dispatch to WhatsApp
+              Dispatch via Bridge
             </button>
           </div>
         </div>
@@ -630,12 +634,18 @@
           <textarea id="confirm-thankyou-text" rows="4" class="w-full p-3 bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 rounded-xl text-xs text-stone-900 dark:text-stone-100 font-tabular focus:bg-white dark:focus:bg-stone-900 focus:border-stone-900 dark:focus:border-stone-100 focus:outline-none resize-none transition-all"></textarea>
         </div>
 
-        <div class="flex items-center justify-between pt-3 border-t border-stone-200 dark:border-stone-800">
+        <div class="flex items-center justify-between pt-3 border-t border-stone-200 dark:border-stone-800 flex-wrap gap-2">
           <button type="button" onclick="closeConfirmPaymentModal()" class="px-4 py-2 text-xs font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors">Cancel</button>
-          <button type="button" onclick="submitConfirmPayment()" id="btn-submit-confirm" class="px-5 py-2 text-xs font-bold text-white bg-stone-900 hover:bg-black dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white rounded-xl shadow-sm flex items-center gap-1.5 transition-all">
-            <i data-lucide="check" class="w-3.5 h-3.5"></i>
-            Confirm &amp; Transmit Receipt
-          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="openDirectWhatsAppReceipt()" class="px-4 py-2 text-xs font-bold text-spruce-800 dark:text-spruce-300 bg-spruce-100 hover:bg-spruce-200 dark:bg-spruce-900/50 rounded-xl flex items-center gap-1.5 transition-all">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              Open in WhatsApp (1-Tap)
+            </button>
+            <button type="button" onclick="submitConfirmPayment()" id="btn-submit-confirm" class="px-4 py-2 text-xs font-bold text-white bg-stone-900 hover:bg-black dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white rounded-xl shadow-sm flex items-center gap-1.5 transition-all">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              Confirm Paid
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1372,7 +1382,10 @@
                 ` : ''}
                 <button onclick="openPreviewModal('${c.client_id}')" class="flex-1 py-2 px-2 bg-wa hover:bg-wa-hover text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 shadow-sm transition-colors">
                   <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                  <span>Dispatch</span>
+                  <span>Remind</span>
+                </button>
+                <button onclick="quickDirectWhatsApp('${c.client_id}')" class="p-2 text-wa bg-wa/10 hover:bg-wa/20 rounded-xl flex items-center justify-center transition-colors" title="1-Tap Open in WhatsApp App">
+                  <i data-lucide="external-link" class="w-4 h-4"></i>
                 </button>
                 <a href="/invoice/${c.client_id}" target="_blank" class="p-2 text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 rounded-xl hover:bg-stone-200 flex items-center justify-center" title="View PDF">
                   <i data-lucide="file-text" class="w-4 h-4"></i>
@@ -1609,18 +1622,113 @@
           closePreviewModal();
           loadClients();
         } else {
-          const errMsg = data.error || data.detail || "WhatsApp is not linked or ready. Please link your phone.";
-          showToast("WhatsApp Not Linked", errMsg, true);
-          if (errMsg.toLowerCase().includes("not ready") || errMsg.toLowerCase().includes("qr") || errMsg.toLowerCase().includes("link")) {
-            setTimeout(() => { openWhatsAppModal(); }, 1000);
-          }
+          const errMsg = data.error || data.detail || "WhatsApp bridge is not linked on cloud server.";
+          showToast("Bridge Offline", "Opening direct WhatsApp on your device...", false);
+          setTimeout(() => { openDirectWhatsApp(); }, 600);
         }
       } catch (err) {
-        showToast("Error", err.message, true);
+        showToast("Bridge Offline", "Opening direct WhatsApp on your device...", false);
+        setTimeout(() => { openDirectWhatsApp(); }, 600);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Send to WhatsApp`;
+        btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Dispatch via Bridge`;
         lucide.createIcons();
+      }
+    }
+
+    function openDirectWhatsApp() {
+      if (!currentPreviewClientId) return;
+      const client = allClients.find(c => c.client_id === currentPreviewClientId);
+      if (!client) return;
+
+      let phone = (client.phone || '').replace(/[^0-9]/g, '');
+      if (phone.startsWith('03') && phone.length === 11) {
+        phone = '92' + phone.slice(1);
+      } else if (phone.startsWith('3') && phone.length === 10) {
+        phone = '92' + phone;
+      }
+
+      let message = document.getElementById('preview-message-text').value;
+      const invoiceUrl = `${window.location.origin}/invoice/${encodeURIComponent(client.client_id)}`;
+      if (!message.includes(invoiceUrl)) {
+        message += `\n\n📄 *Official Invoice Document:*\n${invoiceUrl}`;
+      }
+
+      fetch(`/api/clients/${encodeURIComponent(client.client_id)}/mark-reminded`, { method: 'POST' })
+        .then(() => loadClients())
+        .catch(() => {});
+
+      showToast("Opening WhatsApp", `Launching WhatsApp for ${client.client_name}...`);
+      closePreviewModal();
+
+      const encoded = encodeURIComponent(message);
+      const appUrl = `whatsapp://send?phone=${phone}&text=${encoded}`;
+      const webUrl = `https://wa.me/${phone}?text=${encoded}`;
+
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = appUrl;
+        setTimeout(() => {
+          window.open(webUrl, '_blank');
+        }, 1500);
+      } else {
+        window.open(webUrl, '_blank');
+      }
+    }
+
+    async function quickDirectWhatsApp(clientId) {
+      const client = allClients.find(c => c.client_id === clientId);
+      if (!client) return;
+
+      let phone = (client.phone || '').replace(/[^0-9]/g, '');
+      if (phone.startsWith('03') && phone.length === 11) {
+        phone = '92' + phone.slice(1);
+      } else if (phone.startsWith('3') && phone.length === 10) {
+        phone = '92' + phone;
+      }
+
+      const evalCat = client.evaluation?.category || 'DUE_TODAY';
+      const templates = getTemplates();
+      let message = "";
+      try {
+        const res = await fetch('/api/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: clientId,
+            category: evalCat,
+            custom_templates: templates
+          })
+        });
+        const data = await res.json();
+        message = data.message;
+      } catch (e) {
+        message = `Dear ${client.client_name}, this is an official reminder for Invoice #${client.invoice_number || 'Invoice'} (${client.currency || 'PKR'} ${client.amount_due}). Due date: ${client.due_date}.`;
+      }
+
+      const invoiceUrl = `${window.location.origin}/invoice/${encodeURIComponent(client.client_id)}`;
+      if (!message.includes(invoiceUrl)) {
+        message += `\n\n📄 *Official Invoice Document:*\n${invoiceUrl}`;
+      }
+
+      fetch(`/api/clients/${encodeURIComponent(client.client_id)}/mark-reminded`, { method: 'POST' })
+        .then(() => loadClients())
+        .catch(() => {});
+
+      showToast("Opening WhatsApp", `Launching WhatsApp for ${client.client_name}...`);
+
+      const encoded = encodeURIComponent(message);
+      const appUrl = `whatsapp://send?phone=${phone}&text=${encoded}`;
+      const webUrl = `https://wa.me/${phone}?text=${encoded}`;
+
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = appUrl;
+        setTimeout(() => {
+          window.open(webUrl, '_blank');
+        }, 1500);
+      } else {
+        window.open(webUrl, '_blank');
       }
     }
 
@@ -1713,8 +1821,51 @@
         showToast("Error", err.message, true);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Confirm &amp; Transmit Receipt`;
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Confirm Paid`;
         lucide.createIcons();
+      }
+    }
+
+    function openDirectWhatsAppReceipt() {
+      if (!currentConfirmClientId) return;
+      const client = allClients.find(c => c.client_id === currentConfirmClientId);
+      if (!client) return;
+
+      let phone = (client.phone || '').replace(/[^0-9]/g, '');
+      if (phone.startsWith('03') && phone.length === 11) {
+        phone = '92' + phone.slice(1);
+      } else if (phone.startsWith('3') && phone.length === 10) {
+        phone = '92' + phone;
+      }
+
+      let message = document.getElementById('confirm-thankyou-text').value;
+      const invoiceUrl = `${window.location.origin}/invoice/${encodeURIComponent(client.client_id)}`;
+      if (!message.includes(invoiceUrl)) {
+        message += `\n\n📄 *Official Paid Settlement Receipt:*\n${invoiceUrl}`;
+      }
+
+      // Mark paid in database
+      fetch(`/api/clients/${encodeURIComponent(client.client_id)}/confirm-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_thank_you: message, dry_run: false })
+      }).then(() => loadClients()).catch(() => {});
+
+      showToast("Payment Confirmed", `Account marked Paid. Launching WhatsApp...`);
+      closeConfirmPaymentModal();
+
+      const encoded = encodeURIComponent(message);
+      const appUrl = `whatsapp://send?phone=${phone}&text=${encoded}`;
+      const webUrl = `https://wa.me/${phone}?text=${encoded}`;
+
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = appUrl;
+        setTimeout(() => {
+          window.open(webUrl, '_blank');
+        }, 1500);
+      } else {
+        window.open(webUrl, '_blank');
       }
     }
 
