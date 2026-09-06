@@ -1,0 +1,28 @@
+{
+  "name": "Collections Ledger",
+  "short_name": "Ledger",
+  "description": "Financial accounts and collections ledger with WhatsApp dispatch",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#15181E",
+  "theme_color": "#15181E",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance"],
+  "lang": "en"
+}

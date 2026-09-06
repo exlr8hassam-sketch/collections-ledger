@@ -1,0 +1,10 @@
+﻿.venv/
+__pycache__/
+*.pyc
+whatsapp-bridge/node_modules/
+whatsapp-bridge/.wwebjs_auth/
+whatsapp-bridge/auth_info_baileys/
+.wwebjs_auth/
+auth_info_baileys/
+.env
+invoices/*.pdf
