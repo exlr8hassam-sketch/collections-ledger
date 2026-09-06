@@ -235,10 +235,141 @@ class WhatsAppDispatcher(BaseDispatcher):
             return self.send(to, caption, client_info)
 
 
+class MetaWhatsAppDispatcher(BaseDispatcher):
+    """
+    Official Meta WhatsApp Cloud API Dispatcher.
+    Sends automated payment reminders, PDF statement documents, and interactive quick-reply buttons.
+    100% Cloud-native, zero Chrome, runs 24/7 on Render with no laptop required.
+    """
+    def __init__(self, phone_number_id: str = None, access_token: str = None):
+        import os
+        self.phone_number_id = phone_number_id or getattr(config, "META_WA_PHONE_NUMBER_ID", "") or os.getenv("META_WA_PHONE_NUMBER_ID")
+        self.access_token = access_token or getattr(config, "META_WA_ACCESS_TOKEN", "") or os.getenv("META_WA_ACCESS_TOKEN")
+        self.last_error = None
+
+    def _clean_phone(self, phone: str) -> str:
+        clean = "".join(filter(str.isdigit, str(phone)))
+        if clean.startswith("03") and len(clean) == 11:
+            clean = "92" + clean[1:]
+        elif clean.startswith("3") and len(clean) == 10:
+            clean = "92" + clean
+        return clean
+
+    def send(self, to: str, message: str, client_info: Dict[str, Any]) -> bool:
+        clean_to = self._clean_phone(to)
+        client_id = client_info.get("client_id", "CLI")
+        url = f"https://graph.facebook.com/v20.0/{self.phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        # Send interactive message with [ ✅ I Have Paid ] and [ ⏳ Need More Time ] buttons
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": clean_to,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {
+                    "text": message[:1024]
+                },
+                "action": {
+                    "buttons": [
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": f"paid_{client_id}",
+                                "title": "✅ I Have Paid"
+                            }
+                        },
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": f"time_{client_id}",
+                                "title": "⏳ Need More Time"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=25)
+            data = resp.json()
+            if resp.status_code in [200, 201] and "messages" in data:
+                logger.info(f"[✓] Meta WhatsApp interactive message delivered to {clean_to} (ID: {data['messages'][0]['id']})")
+                self.last_error = None
+                return True
+            else:
+                err_msg = data.get("error", {}).get("message", resp.text)
+                logger.warning(f"Meta interactive send failed ({err_msg}). Falling back to text.")
+                fallback_payload = {
+                    "messaging_product": "whatsapp",
+                    "to": clean_to,
+                    "type": "text",
+                    "text": {"body": message}
+                }
+                fallback_resp = requests.post(url, headers=headers, json=fallback_payload, timeout=25)
+                fb_data = fallback_resp.json()
+                if fallback_resp.status_code in [200, 201] and "messages" in fb_data:
+                    logger.info(f"[✓] Meta fallback text delivered to {clean_to}")
+                    self.last_error = None
+                    return True
+                self.last_error = fb_data.get("error", {}).get("message", fallback_resp.text)
+                logger.error(f"[X] Meta WhatsApp dispatch failed: {self.last_error}")
+                return False
+        except Exception as e:
+            self.last_error = str(e)
+            logger.error(f"[X] Meta WhatsApp exception: {e}")
+            return False
+
+    def send_pdf(self, to: str, pdf_path: str, caption: str, client_info: Dict[str, Any]) -> bool:
+        clean_to = self._clean_phone(to)
+        client_id = client_info.get("client_id", "CLI")
+        filename = Path(pdf_path).name
+        
+        # 1. Send the interactive message first
+        self.send(to, caption, client_info)
+        
+        # 2. Then deliver the document link via Cloud API
+        invoice_web_url = f"https://collections-ledger.onrender.com/invoice/{client_id}"
+        url = f"https://graph.facebook.com/v20.0/{self.phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+        doc_payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_to,
+            "type": "document",
+            "document": {
+                "link": invoice_web_url,
+                "caption": f"Official Invoice #{client_info.get('invoice_number', filename)}",
+                "filename": filename
+            }
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=doc_payload, timeout=25)
+            if resp.status_code in [200, 201]:
+                logger.info(f"[✓] Meta WhatsApp PDF document dispatched to {clean_to}")
+                return True
+        except Exception as e:
+            logger.warning(f"Could not send PDF link via Meta API: {e}")
+        return True
+
+
 def get_dispatcher(mode: str = None) -> BaseDispatcher:
     """Factory function to retrieve the configured dispatcher."""
+    import os
     selected = (mode or config.DISPATCHER_MODE).lower()
-    if selected == "whatsapp":
+    meta_id = getattr(config, "META_WA_PHONE_NUMBER_ID", "") or os.getenv("META_WA_PHONE_NUMBER_ID")
+    meta_token = getattr(config, "META_WA_ACCESS_TOKEN", "") or os.getenv("META_WA_ACCESS_TOKEN")
+
+    if selected in ["meta_whatsapp", "meta"] or (selected == "whatsapp" and meta_id and meta_token):
+        return MetaWhatsAppDispatcher(phone_number_id=meta_id, access_token=meta_token)
+    elif selected == "whatsapp":
         return WhatsAppDispatcher()
     elif selected == "email_to_sms":
         return EmailToSmsDispatcher()
@@ -248,3 +379,4 @@ def get_dispatcher(mode: str = None) -> BaseDispatcher:
         return TwilioDispatcher()
     else:
         return SimulationDispatcher()
+

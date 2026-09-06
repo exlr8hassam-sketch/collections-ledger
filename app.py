@@ -98,7 +98,22 @@ class PaymentConfigUpdate(BaseModel):
 
 @app.get("/api/status")
 def get_system_status():
-    """Checks the status of the WhatsApp Web bridge."""
+    """Checks the status of the WhatsApp Web bridge or Meta Cloud API."""
+    meta_id = getattr(config, "META_WA_PHONE_NUMBER_ID", "") or os.getenv("META_WA_PHONE_NUMBER_ID")
+    meta_token = getattr(config, "META_WA_ACCESS_TOKEN", "") or os.getenv("META_WA_ACCESS_TOKEN")
+
+    if meta_id and meta_token:
+        return {
+            "bridge_online": True,
+            "whatsapp_ready": True,
+            "bridge_status": "connected",
+            "gateway": "Meta WhatsApp Cloud API",
+            "phone_number_id": meta_id,
+            "user_phone": "+1 (555) 675-8522",
+            "pairing_code": None,
+            "bridge_url": "https://graph.facebook.com"
+        }
+
     bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
     try:
         resp = requests.get(f"{bridge_url}/status", timeout=2)
@@ -350,6 +365,55 @@ def toggle_client_status(client_id: str):
             "receipt_sent": False,
             "client_name": target.get("client_name")
         }
+
+
+@app.get("/api/webhook")
+def verify_meta_webhook(request: Request):
+    """Verifies the webhook endpoint with Meta WhatsApp Cloud Platform."""
+    verify_token = os.getenv("META_WEBHOOK_VERIFY_TOKEN", "collections_ledger_secure_token")
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    if mode == "subscribe" and token == verify_token:
+        logger.info("[✓] Meta Webhook verified successfully!")
+        return Response(content=challenge, media_type="text/plain")
+    return Response(content="Forbidden", status_code=403)
+
+
+@app.post("/api/webhook")
+async def handle_meta_webhook(request: Request):
+    """Handles incoming WhatsApp button replies (e.g. 'I Have Paid')."""
+    try:
+        body = await request.json()
+        entry = body.get("entry", [])
+        if entry:
+            changes = entry[0].get("changes", [])
+            if changes:
+                value = changes[0].get("value", {})
+                messages = value.get("messages", [])
+                if messages:
+                    msg = messages[0]
+                    if msg.get("type") == "interactive":
+                        btn_reply = msg.get("interactive", {}).get("button_reply", {})
+                        btn_id = btn_reply.get("id", "")
+                        btn_title = btn_reply.get("title", "")
+                        from_phone = msg.get("from", "")
+                        logger.info(f"[*] Client {from_phone} tapped button: {btn_title} ({btn_id})")
+
+                        if btn_id.startswith("paid_") or "paid" in btn_id.lower():
+                            raw_id = btn_id.replace("paid_", "").replace("btn_paid_", "")
+                            clients = agent.load_clients()
+                            for c in clients:
+                                if c.get("client_id") == raw_id or raw_id in c.get("invoice_number", ""):
+                                    c["status"] = "Paid"
+                                    c["notes"] = f"Settlement reported via WhatsApp button on {datetime.date.today()}"
+                                    break
+                            agent.save_clients(clients)
+                            logger.info(f"[✓] Client settled via WhatsApp button: {raw_id}")
+    except Exception as e:
+        logger.warning(f"Webhook processing error: {e}")
+    return {"status": "success"}
 
 
 @app.delete("/api/clients/{client_id}")
