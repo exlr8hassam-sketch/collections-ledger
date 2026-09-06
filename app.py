@@ -143,6 +143,7 @@ def request_whatsapp_pairing(payload: dict):
         return {"success": False, "error": str(e)}
 
 
+@app.get("/qr-img")
 @app.get("/api/whatsapp/qr")
 def get_whatsapp_qr():
     """Proxies the WhatsApp QR code image so it works on mobile devices and over the internet."""
