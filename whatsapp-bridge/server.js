@@ -34,22 +34,41 @@ function createWhatsAppClient() {
 
     console.log('[*] Initializing WhatsApp Web client instance...');
 
+    const isWin = process.platform === 'win32';
+    const winChrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+    let execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    if (!execPath) {
+        if (isWin && fs.existsSync(winChrome)) {
+            execPath = winChrome;
+        } else if (!isWin && fs.existsSync('/usr/bin/chromium')) {
+            execPath = '/usr/bin/chromium';
+        } else if (!isWin && fs.existsSync('/usr/bin/chromium-browser')) {
+            execPath = '/usr/bin/chromium-browser';
+        }
+    }
+
+    const puppeteerConfig = {
+        headless: true,
+        protocolTimeout: 120000,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+        ]
+    };
+    if (execPath) {
+        puppeteerConfig.executablePath = execPath;
+    }
+
     client = new Client({
         authStrategy: new LocalAuth({
             dataPath: path.join(__dirname, '.wwebjs_auth')
         }),
-        puppeteer: {
-            headless: true,
-            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            protocolTimeout: 120000,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--no-first-run',
-                '--no-zygote'
-            ]
-        }
+        puppeteer: puppeteerConfig
     });
 
     client.on('qr', async (qr) => {
