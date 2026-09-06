@@ -59,9 +59,9 @@ function createWhatsAppClient() {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-blink-features=AutomationControlled',
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
         ]
     };
     if (execPath) {
@@ -72,6 +72,11 @@ function createWhatsAppClient() {
         authStrategy: new LocalAuth({
             dataPath: path.join(__dirname, '.wwebjs_auth')
         }),
+        webVersionCache: {
+            type: 'remote',
+            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1046918752-alpha.html',
+            strict: false
+        },
         puppeteer: puppeteerConfig
     });
 
