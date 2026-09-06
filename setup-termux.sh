@@ -6,9 +6,11 @@ echo "  Setting up Collections Ledger on Android Termux  "
 echo "==================================================="
 
 pkg update -y
-pkg install -y git python nodejs clang make libjpeg-turbo freetype libpng python-cryptography python-pillow
+pkg install -y git python nodejs clang make libjpeg-turbo freetype libpng rust binutils
+pkg install -y tur-repo || true
+pkg install -y python-pydantic python-cryptography python-pillow || true
 
-pip install -r requirements.txt
+pip install fastapi uvicorn requests python-dotenv reportlab google-genai pydantic
 
 cd whatsapp-bridge
 npm install
