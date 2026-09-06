@@ -1,4 +1,4 @@
-﻿FROM python:3.11-slim
+FROM python:3.11-slim
 
 # Install system dependencies, curl, Node.js 20, and Chromium with all required libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PORT=8000
+ENV PORT=10000
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
@@ -62,6 +62,6 @@ COPY . .
 
 RUN chmod +x start.sh
 
-EXPOSE 8000 3000
+EXPOSE 10000
 
 CMD ["./start.sh"]

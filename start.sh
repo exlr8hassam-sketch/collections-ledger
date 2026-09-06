@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-echo "[+] Starting WhatsApp Web Bridge..."
+echo "[+] Starting WhatsApp Web Bridge on internal port 3000..."
 cd /app/whatsapp-bridge
-node server.js &
+BRIDGE_PORT=3000 node server.js &
 
-echo "[+] Starting Collections Ledger Dashboard on port ${PORT:-8000}..."
+PUBLIC_PORT="${PORT:-10000}"
+echo "[+] Starting Collections Ledger Dashboard on port $PUBLIC_PORT..."
 cd /app
-PORT="${PORT:-8000}"
-exec python -m uvicorn app:app --host 0.0.0.0 --port "$PORT"
+exec python -m uvicorn app:app --host 0.0.0.0 --port "$PUBLIC_PORT"

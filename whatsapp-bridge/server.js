@@ -16,7 +16,11 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+app.get('/', (req, res) => {
+    res.json({ status: 'WhatsApp Bridge Online', ready: isReady });
+});
+
+const PORT = process.env.BRIDGE_PORT || 3000;
 let isReady = false;
 let currentQrData = null;
 let client = null;
