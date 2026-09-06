@@ -159,6 +159,19 @@ def get_whatsapp_qr():
     raise HTTPException(status_code=404, detail="QR code not available")
 
 
+@app.get("/qr", response_class=HTMLResponse)
+def serve_qr_page():
+    """Serves the live auto-refreshing QR code scanning page."""
+    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
+    try:
+        resp = requests.get(f"{bridge_url}/qr", timeout=3)
+        if resp.status_code == 200:
+            return HTMLResponse(content=resp.text)
+    except Exception:
+        pass
+    return HTMLResponse("<h2>QR generator loading, please refresh in 5 seconds...</h2>")
+
+
 @app.get("/api/clients")
 def get_all_clients():
     """Returns all clients enriched with evaluation status and category."""

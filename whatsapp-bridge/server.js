@@ -77,31 +77,15 @@ function createWhatsAppClient() {
 
     client.on('qr', async (qr) => {
         currentQrData = qr;
-        console.log('\n[!] QR code ready. Generating 8-digit Pairing Code for', USER_PHONE, '...');
+        console.log('\n[!] Live WhatsApp QR code generated. Ready for scanning.');
         qrcodeTerminal.generate(qr, { small: true });
 
         try {
             const qrImagePath = path.join(__dirname, 'qr.png');
             await QRCode.toFile(qrImagePath, qr);
-        } catch (err) {}
-
-        if (!pairingCodeRequested) {
-            pairingCodeRequested = true;
-            try {
-                const cleanPhone = USER_PHONE.replace(/[^0-9]/g, '');
-                const pairingCode = await client.requestPairingCode(cleanPhone);
-                console.log('\n====================================================');
-                console.log(`[⭐] YOUR 8-CHARACTER PAIRING CODE:  ${pairingCode}`);
-                console.log('====================================================');
-                console.log('On your phone:');
-                console.log('1. Open WhatsApp -> Linked Devices -> Link a Device');
-                console.log('2. Tap "Link with phone number instead" at the bottom');
-                console.log(`3. Enter this code: ${pairingCode}\n`);
-                
-                fs.writeFileSync(path.join(__dirname, 'pairing_code.txt'), pairingCode);
-            } catch (e) {
-                console.log('Could not request pairing code automatically:', e.message);
-            }
+            console.log('[✓] Live QR code saved to qr.png');
+        } catch (err) {
+            console.error('Error saving qr.png:', err.message);
         }
     });
 
