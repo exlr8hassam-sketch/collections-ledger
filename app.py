@@ -366,26 +366,6 @@ def delete_client(client_id: str):
     return {"success": True, "client_id": client_id}
 
 
-@app.post("/api/clients/{client_id}/mark-reminded")
-def mark_client_reminded(client_id: str):
-    """Marks a client as reminded manually or via 1-tap mobile dispatch."""
-    clients = agent.load_clients()
-    target = next((c for c in clients if c.get("client_id") == client_id), None)
-    if not target:
-        raise HTTPException(status_code=404, detail="Client not found")
-
-    today_str = str(datetime.date.today())
-    target["reminders_sent"] = str(int(target.get("reminders_sent") or 0) + 1)
-    target["last_reminded_date"] = today_str
-    agent.save_clients(clients)
-    return {
-        "success": True,
-        "client_id": client_id,
-        "reminders_sent": target["reminders_sent"],
-        "last_reminded_date": today_str
-    }
-
-
 @app.post("/api/preview")
 def preview_message(payload: PreviewRequest):
     """Generates a message preview for a specific client."""
