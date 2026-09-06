@@ -1,16 +1,18 @@
 #!/bin/bash
 set -e
 
-if [ -f "/app/whatsapp-bridge/session.tar.gz" ] && [ ! -d "/app/whatsapp-bridge/.wwebjs_auth" ]; then
+DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ -f "$DIR/whatsapp-bridge/session.tar.gz" ] && [ ! -d "$DIR/whatsapp-bridge/.wwebjs_auth" ]; then
     echo "[+] Unpacking pre-authenticated WhatsApp session..."
-    tar -xzf /app/whatsapp-bridge/session.tar.gz -C /app/whatsapp-bridge
+    tar -xzf "$DIR/whatsapp-bridge/session.tar.gz" -C "$DIR/whatsapp-bridge"
 fi
 
 echo "[+] Starting WhatsApp Web Bridge on internal port 3000..."
-cd /app/whatsapp-bridge
+cd "$DIR/whatsapp-bridge"
 BRIDGE_PORT=3000 node server.js &
 
-PUBLIC_PORT="${PORT:-10000}"
+PUBLIC_PORT="${PORT:-8000}"
 echo "[+] Starting Collections Ledger Dashboard on port $PUBLIC_PORT..."
-cd /app
+cd "$DIR"
 exec python -m uvicorn app:app --host 0.0.0.0 --port "$PUBLIC_PORT"
