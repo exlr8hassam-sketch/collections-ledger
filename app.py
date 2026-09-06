@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 import asyncio
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, Response
 from pydantic import BaseModel
