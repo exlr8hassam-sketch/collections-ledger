@@ -211,7 +211,12 @@ app.post('/pair', async (req, res) => {
         if (!client) {
             return res.status(503).json({ success: false, error: 'Client not ready' });
         }
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        let cleanPhone = phone.replace(/[^0-9]/g, '');
+        if (cleanPhone.startsWith('03') && cleanPhone.length === 11) {
+            cleanPhone = '92' + cleanPhone.slice(1);
+        } else if (cleanPhone.startsWith('3') && cleanPhone.length === 10) {
+            cleanPhone = '92' + cleanPhone;
+        }
         console.log(`[*] Requesting WhatsApp pairing code for: ${cleanPhone}`);
         const code = await client.requestPairingCode(cleanPhone);
         fs.writeFileSync(path.join(__dirname, 'pairing_code.txt'), code);

@@ -1095,9 +1095,16 @@
 
     async function requestPairingCode() {
       const phoneInput = document.getElementById('wa-input-phone');
-      const phone = (phoneInput.value || '').trim();
-      if (!phone) {
-        showToast("Phone Required", "Please enter phone number with country code (e.g. 923001234567).", true);
+      let phone = (phoneInput.value || '').replace(/[^0-9]/g, '');
+      if (phone.startsWith('03') && phone.length === 11) {
+        phone = '92' + phone.slice(1);
+      } else if (phone.startsWith('3') && phone.length === 10) {
+        phone = '92' + phone;
+      }
+      phoneInput.value = phone;
+
+      if (!phone || phone.length < 10) {
+        showToast("Phone Required", "Please enter valid phone number (e.g. 923013311991 or 03013311991).", true);
         return;
       }
 
