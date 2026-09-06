@@ -6,9 +6,8 @@ echo "  Setting up Collections Ledger on Android Termux  "
 echo "==================================================="
 
 pkg update -y
-pkg install -y git python nodejs clang make libjpeg-turbo freetype libpng
+pkg install -y git python nodejs clang make libjpeg-turbo freetype libpng python-cryptography python-pillow
 
-pip install --upgrade pip
 pip install -r requirements.txt
 
 cd whatsapp-bridge
