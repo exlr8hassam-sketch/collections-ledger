@@ -367,7 +367,7 @@ def get_dispatcher(mode: str = None) -> BaseDispatcher:
     meta_id = getattr(config, "META_WA_PHONE_NUMBER_ID", "") or os.getenv("META_WA_PHONE_NUMBER_ID")
     meta_token = getattr(config, "META_WA_ACCESS_TOKEN", "") or os.getenv("META_WA_ACCESS_TOKEN")
 
-    if selected in ["meta_whatsapp", "meta"] or (selected == "whatsapp" and meta_id and meta_token):
+    if selected in ["meta_whatsapp", "meta"] and meta_id and meta_token:
         return MetaWhatsAppDispatcher(phone_number_id=meta_id, access_token=meta_token)
     elif selected == "whatsapp":
         return WhatsAppDispatcher()

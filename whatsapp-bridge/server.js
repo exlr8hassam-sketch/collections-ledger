@@ -26,7 +26,7 @@ let currentQrData = null;
 let client = null;
 let pairingCodeRequested = false;
 
-const USER_PHONE = process.env.WHATSAPP_PHONE || '923329755091';
+const USER_PHONE = process.env.WHATSAPP_PHONE || '923013311991';
 
 console.log('====================================================');
 console.log('       WhatsApp Web Bridge for Reminder Agent        ');
@@ -90,7 +90,8 @@ function createWhatsAppClient() {
     });
 
     client.on('authenticated', () => {
-        console.log('[✓] WhatsApp session authenticated successfully!');
+        isReady = true;
+        console.log('[✓] WhatsApp session authenticated successfully! Marked as ready.');
     });
 
     client.on('auth_failure', (msg) => {
@@ -167,7 +168,7 @@ app.get('/qr-img', (req, res) => {
 });
 
 // Check service status
-app.get('/status', (req, res) => {
+app.get('/status', async (req, res) => {
     const codePath = path.join(__dirname, 'pairing_code.txt');
     let code = null;
     if (fs.existsSync(codePath)) {
@@ -175,11 +176,27 @@ app.get('/status', (req, res) => {
             code = fs.readFileSync(codePath, 'utf8').trim();
         } catch (e) {}
     }
+
+    let state = null;
+    if (client) {
+        try {
+            state = await client.getState();
+            if (state === 'CONNECTED') {
+                isReady = true;
+            }
+        } catch (e) {}
+    }
+
+    if (client?.info) {
+        isReady = true;
+    }
+
     res.json({
         ready: isReady,
-        status: isReady ? 'connected' : 'authenticating_or_disconnected',
+        status: isReady ? 'connected' : (state || 'authenticating_or_disconnected'),
         pairingCode: code,
-        userPhone: USER_PHONE
+        userPhone: client?.info?.wid?.user || USER_PHONE,
+        info: client?.info ? { wid: client.info.wid, pushname: client.info.pushname } : null
     });
 });
 
@@ -237,6 +254,19 @@ app.post('/disconnect', async (req, res) => {
     }
 });
 
+// Safe reconnect without logging out (preserves session)
+app.post('/reconnect', async (req, res) => {
+    console.log('[*] Reconnecting WhatsApp client (preserving session)...');
+    isReady = false;
+    try {
+        if (client) await client.destroy();
+    } catch (e) {}
+    setTimeout(() => {
+        createWhatsAppClient();
+    }, 1500);
+    return res.json({ success: true, message: 'Reconnecting WhatsApp client...' });
+});
+
 // Send WhatsApp text endpoint
 app.post('/send', async (req, res) => {
     const { phone, message } = req.body;
@@ -285,6 +315,12 @@ app.post('/send', async (req, res) => {
         });
     } catch (err) {
         console.error(`[X] Failed to send message to ${phone}:`, err);
+        if (err.message && (err.message.includes('detached Frame') || err.message.includes('Execution context was destroyed') || err.message.includes('Session closed') || err.message.includes('Target closed'))) {
+            console.log('[!] Detached frame detected. Reconnecting WhatsApp client automatically...');
+            isReady = false;
+            try { if (client) await client.destroy(); } catch (e) {}
+            setTimeout(() => { createWhatsAppClient(); }, 2000);
+        }
         return res.status(500).json({
             success: false,
             error: err.message
@@ -351,6 +387,12 @@ app.post('/send-media', async (req, res) => {
         });
     } catch (err) {
         console.error(`[X] Failed to send media to ${phone}:`, err);
+        if (err.message && (err.message.includes('detached Frame') || err.message.includes('Execution context was destroyed') || err.message.includes('Session closed') || err.message.includes('Target closed'))) {
+            console.log('[!] Detached frame detected in send-media. Reconnecting WhatsApp client automatically...');
+            isReady = false;
+            try { if (client) await client.destroy(); } catch (e) {}
+            setTimeout(() => { createWhatsAppClient(); }, 2000);
+        }
         return res.status(500).json({
             success: false,
             error: err.message

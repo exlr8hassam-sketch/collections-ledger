@@ -99,10 +99,11 @@ class PaymentConfigUpdate(BaseModel):
 @app.get("/api/status")
 def get_system_status():
     """Checks the status of the WhatsApp Web bridge or Meta Cloud API."""
+    mode = getattr(config, "DISPATCHER_MODE", "whatsapp").lower()
     meta_id = getattr(config, "META_WA_PHONE_NUMBER_ID", "") or os.getenv("META_WA_PHONE_NUMBER_ID")
     meta_token = getattr(config, "META_WA_ACCESS_TOKEN", "") or os.getenv("META_WA_ACCESS_TOKEN")
 
-    if meta_id and meta_token:
+    if mode in ["meta", "meta_whatsapp"] and meta_id and meta_token:
         return {
             "bridge_online": True,
             "whatsapp_ready": True,
@@ -118,12 +119,13 @@ def get_system_status():
     try:
         resp = requests.get(f"{bridge_url}/status", timeout=2)
         data = resp.json()
+        detected_phone = (data.get("info") or {}).get("wid", {}).get("user") or data.get("userPhone") or "923013311991"
         return {
             "bridge_online": True,
             "whatsapp_ready": data.get("ready", False),
             "bridge_status": data.get("status", "unknown"),
             "pairing_code": data.get("pairingCode"),
-            "user_phone": data.get("userPhone"),
+            "user_phone": detected_phone,
             "bridge_url": bridge_url
         }
     except Exception as e:
