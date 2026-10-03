@@ -894,6 +894,9 @@ def generate_invoice_page(client_id: str):
       &larr; Back to Dashboard
     </a>
     <div style="display:flex;gap:8px;">
+      <a href="/invoice/{client_id}/pdf" class="btn btn-secondary" download>
+        ⬇️ Download PDF
+      </a>
       <button onclick="window.print()" class="btn btn-primary">
         🖨️ Print / Save as PDF
       </button>
@@ -1004,6 +1007,25 @@ def generate_invoice_page(client_id: str):
 </html>
 """
     return HTMLResponse(content=html_content)
+
+
+@app.get("/invoice/{client_id}/pdf")
+def download_invoice_pdf(client_id: str):
+    """Generates and serves the official PDF invoice file for direct download."""
+    clients = agent.load_clients()
+    client = next((c for c in clients if c.get("client_id") == client_id), None)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    is_paid = str(client.get("status", "")).strip().lower() == "paid"
+    pdf_path = generate_invoice_pdf(client, config.PAYMENT_DETAILS, is_paid=is_paid)
+    filename = Path(pdf_path).name
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename=filename,
+        headers={"Content-Disposition": f'inline; filename="{filename}"'}
+    )
 
 
 @app.get("/api/notifications/summary")

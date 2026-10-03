@@ -1,4 +1,5 @@
 import csv
+import os
 import datetime
 import logging
 import random
@@ -164,12 +165,16 @@ class PaymentReminderAgent:
         invoice = client.get("invoice_number", "N/A")
         client_name = client.get("client_name")
 
+        cid = client.get("client_id", "")
+        base_url = os.getenv("BASE_WEB_URL", "https://collections-ledger.onrender.com").rstrip("/")
+        invoice_link = f"{base_url}/invoice/{cid}" if cid else ""
+
         system_instruction = system_instruction_override or (
             "You are an accounts receivable billing agent for our company. "
             "Write a clean, structured WhatsApp invoice reminder message for a client regarding their payment. "
             "Formatting style:\n"
             "- Use WhatsApp markdown: bold headers with asterisks (*INVOICE*), bullet points, emojis (🧾, 👤, 📄, 📅, 💰, 🏦).\n"
-            "- Include: Client Name, Invoice #, Due Date, Amount Due, and Receiving Bank/Account Details.\n"
+            "- Include: Client Name, Invoice #, Due Date, Amount Due, Receiving Bank/Account Details, and mention the attached PDF invoice.\n"
             "- Tone requirements:\n"
             "  * UPCOMING: Friendly, polite courtesy heads-up.\n"
             "  * DUE_TODAY: Clear, direct, professional reminder that payment is due today.\n"
@@ -186,6 +191,7 @@ Client Name: {client_name}
 Invoice Number: {invoice}
 Amount Due: {amount}
 Due Date: {due_date}
+Online Invoice Document: {invoice_link}
 
 Our Bank Payment Details:
 Bank: {self.payment_info['bank_name']}
@@ -210,6 +216,11 @@ Support Contact: {self.payment_info['support_contact']}
         acct = self.payment_info["iban"] or self.payment_info["account_number"]
         title = self.payment_info["account_title"]
 
+        cid = client.get("client_id", "")
+        base_url = os.getenv("BASE_WEB_URL", "https://collections-ledger.onrender.com").rstrip("/")
+        invoice_link = f"{base_url}/invoice/{cid}" if cid else ""
+        link_line = f"📄 *Official Invoice:* {invoice_link}\n━━━━━━━━━━━━━━━━━━━━━━\n" if invoice_link else "📄 *Official Invoice:* Attached below\n━━━━━━━━━━━━━━━━━━━━━━\n"
+
         if category == "UPCOMING":
             return (
                 f"🧾 *PAYMENT REMINDER / INVOICE*\n"
@@ -224,7 +235,8 @@ Support Contact: {self.payment_info['support_contact']}
                 f"• *Account Title:* {title}\n"
                 f"• *Account / IBAN:* {acct}\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Please disregard if already paid. Thank you! 🙏"
+                f"{link_line}"
+                f"Please find the official PDF invoice attached below. Disregard if already settled. Thank you! 🙏"
             )
         elif category == "DUE_TODAY":
             return (
@@ -241,7 +253,8 @@ Support Contact: {self.payment_info['support_contact']}
                 f"• *Account Title:* {title}\n"
                 f"• *Account / IBAN:* {acct}\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Please reply with the payment screenshot or receipt once transferred. Thank you! 🙏"
+                f"{link_line}"
+                f"Official invoice PDF is attached below. Kindly share transfer receipt once completed. Thank you! 🙏"
             )
         else:  # OVERDUE
             return (
@@ -257,7 +270,8 @@ Support Contact: {self.payment_info['support_contact']}
                 f"• *Account Title:* {title}\n"
                 f"• *Account / IBAN:* {acct}\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Kindly settle this payment at your earliest convenience. Contact {self.payment_info['support_contact']} for any inquiries."
+                f"{link_line}"
+                f"Official PDF statement attached below. Kindly settle at your earliest convenience. Contact {self.payment_info['support_contact']} for any inquiries."
             )
 
     def process_reminders(self, dry_run: bool = False, target_client_id: str = None, attach_pdf: bool = True) -> List[Dict[str, Any]]:

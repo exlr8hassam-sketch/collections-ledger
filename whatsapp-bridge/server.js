@@ -371,16 +371,30 @@ app.post('/send-media', async (req, res) => {
             console.log('[Notice] getNumberId resolution skipped:', e.message);
         }
 
-        console.log(`[*] Sending WhatsApp PDF Media (${filePath}) to: ${targetChatId}`);
+        // 1. If caption text is provided, dispatch text reminder message first
+        if (caption && caption.trim()) {
+            console.log(`[*] Delivering invoice message text to: ${targetChatId}`);
+            try {
+                await client.sendMessage(targetChatId, caption.trim());
+                await new Promise(r => setTimeout(r, 800));
+            } catch (textErr) {
+                console.log('[Notice] Pre-document text notice:', textErr.message);
+            }
+        }
+
+        // 2. Deliver the official PDF invoice document file as an attachment
+        console.log(`[*] Attaching & sending WhatsApp PDF Document (${filePath}) to: ${targetChatId}`);
         const media = MessageMedia.fromFilePath(filePath);
         if (filename) {
             media.filename = filename;
         }
 
-        const response = await client.sendMessage(targetChatId, media, { caption: caption || '' });
+        const response = await client.sendMessage(targetChatId, media, {
+            sendMediaAsDocument: true
+        });
         const msgId = response?.id?._serialized || response?.id || 'SENT_OK';
 
-        console.log(`[✓] PDF Media sent successfully to ${targetChatId} (ID: ${msgId})`);
+        console.log(`[✓] PDF Document attachment delivered successfully to ${targetChatId} (ID: ${msgId})`);
         return res.json({
             success: true,
             messageId: msgId

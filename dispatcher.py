@@ -207,11 +207,21 @@ class WhatsAppDispatcher(BaseDispatcher):
 
     def send_pdf(self, to: str, pdf_path: str, caption: str, client_info: Dict[str, Any]) -> bool:
         """Sends an official PDF invoice/receipt document with caption via WhatsApp."""
+        resolved_path = Path(pdf_path).resolve()
+        if not resolved_path.exists():
+            try:
+                from pdf_generator import generate_invoice_pdf
+                is_paid = client_info.get("status", "").lower() == "paid"
+                pdf_path = generate_invoice_pdf(client_info, config.PAYMENT_DETAILS, is_paid=is_paid)
+                resolved_path = Path(pdf_path).resolve()
+            except Exception as e:
+                logger.error(f"Could not regenerate missing PDF: {e}")
+
         url = f"{self.bridge_url}/send-media"
-        filename = Path(pdf_path).name
+        filename = resolved_path.name
         payload = {
             "phone": to,
-            "filePath": str(Path(pdf_path).resolve()),
+            "filePath": str(resolved_path),
             "caption": caption,
             "filename": filename
         }
@@ -227,12 +237,18 @@ class WhatsAppDispatcher(BaseDispatcher):
                     self.last_error = err_json.get("error") or resp.text
                 except Exception:
                     self.last_error = resp.text
-                logger.error(f"WhatsApp bridge returned error sending PDF: {self.last_error}. Falling back to text.")
-                return self.send(to, caption, client_info)
+                logger.error(f"WhatsApp bridge returned error sending PDF: {self.last_error}")
+                # Deliver text as fallback so customer receives the details, but return False so failure is visible
+                self.send(to, caption, client_info)
+                return False
+        except requests.exceptions.ConnectionError:
+            self.last_error = f"Cannot connect to WhatsApp bridge at {self.bridge_url}. Launch start-all.bat or start-whatsapp-bridge.bat."
+            logger.error(self.last_error)
+            return False
         except Exception as e:
-            self.last_error = str(e)
-            logger.error(f"WhatsApp PDF dispatch failed: {e}. Falling back to text.")
-            return self.send(to, caption, client_info)
+            self.last_error = f"WhatsApp PDF dispatch failed: {e}"
+            logger.error(self.last_error)
+            return False
 
 
 class MetaWhatsAppDispatcher(BaseDispatcher):
