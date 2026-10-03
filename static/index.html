@@ -714,6 +714,21 @@
           </div>
         </div>
 
+        <!-- Cloudflare Pages & Remote Backend Gateway -->
+        <div class="border-t border-stone-200 dark:border-stone-800 pt-3">
+          <h4 class="text-xs font-bold text-stone-900 dark:text-stone-100 mb-2 flex items-center gap-1.5">
+            <i data-lucide="cloud" class="w-4 h-4 text-stone-500"></i>
+            Cloudflare Pages &amp; Remote API Gateway
+          </h4>
+          <div>
+            <label class="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+              Backend Endpoint / Cloudflare Tunnel URL (Optional)
+            </label>
+            <input type="url" id="cfg-custom-api-url" placeholder="Leave empty for Cloudflare Pages auto-proxy, or paste https://...trycloudflare.com" class="w-full px-3.5 py-2.5 bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 rounded-xl text-xs font-tabular text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-900 focus:border-stone-900 dark:focus:border-stone-100 focus:outline-none transition-all">
+            <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-1">If blank, requests route through Cloudflare Edge proxy. If running locally with <code class="font-mono text-stone-700 dark:text-stone-300">start-tunnel.bat</code>, paste your public tunnel link here.</p>
+          </div>
+        </div>
+
         <!-- Mobile & Notifications Panel -->
         <div class="border-t border-stone-200 dark:border-stone-800 pt-3">
           <h4 class="text-xs font-bold text-stone-900 dark:text-stone-100 mb-2 flex items-center gap-1.5">
@@ -901,6 +916,24 @@
     let currentFilter = 'ALL';
     let currentPreviewClientId = null;
 
+    // Dynamic API Gateway Routing (Cloudflare Pages Edge proxy / Custom Tunnel / Local)
+    function resolveUrl(path) {
+      if (!path || typeof path !== 'string') return path;
+      const custom = (localStorage.getItem('custom_backend_url') || '').trim().replace(/\/+$/, '');
+      if (custom && (path.startsWith('/api') || path.startsWith('/invoice') || path.startsWith('/health') || path.startsWith('/qr'))) {
+        return `${custom}${path}`;
+      }
+      return path;
+    }
+
+    const _origFetch = window.fetch;
+    window.fetch = function(resource, init) {
+      if (typeof resource === 'string') {
+        resource = resolveUrl(resource);
+      }
+      return _origFetch.call(this, resource, init);
+    };
+
     // Authentic business copy without AI emoji tropes
     const DEFAULT_TEMPLATES = {
       UPCOMING: "PAYMENT REMINDER\n------------------------\nClient: {name}\nInvoice: #{invoice}\nDue Date: {due_date}\nTotal Due: {amount}\n------------------------\nPayment Account:\nBank: {bank}\nAccount Title: {title}\nAccount / IBAN: {account}\n------------------------\nKindly settle at your earliest convenience. Thank you.",
@@ -1003,7 +1036,7 @@
 
     function refreshQrImage() {
       const img = document.getElementById('wa-qr-img');
-      if (img) img.src = `/api/whatsapp/qr?t=${Date.now()}`;
+      if (img) img.src = resolveUrl(`/api/whatsapp/qr?t=${Date.now()}`);
     }
 
     async function refreshWhatsAppModalStatus() {
@@ -1742,6 +1775,12 @@
         const lblOvr = document.getElementById('lbl-overdue-gap');
         if (lblAdv) lblAdv.innerText = `${advDays}d`;
         if (lblOvr) lblOvr.innerText = `${ovrGap}d`;
+
+        const customBackendInput = document.getElementById('cfg-custom-api-url');
+        if (customBackendInput) {
+          customBackendInput.value = localStorage.getItem('custom_backend_url') || '';
+        }
+
         lucide.createIcons();
       } catch (e) {
         console.error("Config fetch error:", e);
@@ -1781,6 +1820,14 @@
 
     async function handleConfigSubmit(e) {
       e.preventDefault();
+
+      const customUrl = (document.getElementById('cfg-custom-api-url')?.value || '').trim();
+      if (customUrl) {
+        localStorage.setItem('custom_backend_url', customUrl);
+      } else {
+        localStorage.removeItem('custom_backend_url');
+      }
+
       const payload = {
         bank_name: document.getElementById('cfg-bank-name').value,
         account_title: document.getElementById('cfg-account-title').value,

@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any, List
 
 import asyncio
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, Response
 from pydantic import BaseModel
@@ -17,6 +18,15 @@ import config
 from agent import PaymentReminderAgent
 
 app = FastAPI(title="Payment Reminder Agent Dashboard")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 agent = PaymentReminderAgent()
 
 BASE_DIR = Path(__file__).resolve().parent
