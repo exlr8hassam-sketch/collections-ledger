@@ -1,3 +1,9 @@
+try {
+    require('./patch-wwebjs');
+} catch (e) {
+    console.log('[Notice] Auto-patch notice:', e.message);
+}
+
 const express = require('express');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');

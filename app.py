@@ -16,6 +16,7 @@ import requests
 
 import config
 from agent import PaymentReminderAgent
+from pdf_generator import generate_invoice_pdf
 
 app = FastAPI(title="Payment Reminder Agent Dashboard")
 

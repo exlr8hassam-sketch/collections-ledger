@@ -52,7 +52,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Node requirements for WhatsApp Bridge
-COPY whatsapp-bridge/package*.json ./whatsapp-bridge/
+COPY whatsapp-bridge/package*.json whatsapp-bridge/patch-wwebjs.js* ./whatsapp-bridge/
 WORKDIR /app/whatsapp-bridge
 RUN npm install --production
 
