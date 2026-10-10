@@ -126,7 +126,7 @@ def get_system_status():
             "bridge_url": "https://graph.facebook.com"
         }
 
-    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
+    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3005")
     try:
         resp = requests.get(f"{bridge_url}/status", timeout=2)
         data = resp.json()
@@ -152,7 +152,7 @@ def get_system_status():
 @app.post("/api/whatsapp/disconnect")
 def disconnect_whatsapp():
     """Disconnects the current WhatsApp session to link another account."""
-    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
+    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3005")
     try:
         resp = requests.post(f"{bridge_url}/disconnect", timeout=5)
         return resp.json()
@@ -163,7 +163,7 @@ def disconnect_whatsapp():
 @app.post("/api/whatsapp/pair")
 def request_whatsapp_pairing(payload: dict):
     """Requests an 8-character WhatsApp pairing code for a specific phone number."""
-    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
+    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3005")
     try:
         resp = requests.post(f"{bridge_url}/pair", json=payload, timeout=8)
         return resp.json()
@@ -175,7 +175,7 @@ def request_whatsapp_pairing(payload: dict):
 @app.get("/api/whatsapp/qr")
 def get_whatsapp_qr():
     """Proxies the WhatsApp QR code image so it works on mobile devices and over the internet."""
-    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
+    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3005")
     try:
         resp = requests.get(f"{bridge_url}/qr-img", timeout=3)
         if resp.status_code == 200:
@@ -191,7 +191,7 @@ def get_whatsapp_qr():
 @app.get("/qr", response_class=HTMLResponse)
 def serve_qr_page():
     """Serves the live auto-refreshing QR code scanning page."""
-    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
+    bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3005")
     try:
         resp = requests.get(f"{bridge_url}/qr", timeout=3)
         if resp.status_code == 200:
@@ -1126,7 +1126,7 @@ async def autonomous_reminder_scheduler():
 
             # Automatically dispatch when 9:00 AM or later and hasn't dispatched today
             if now.hour >= 9 and LAST_AUTONOMOUS_DISPATCH_DATE != today_str:
-                bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3000")
+                bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3005")
                 try:
                     res = requests.get(f"{bridge_url}/status", timeout=3)
                     if res.ok and res.json().get("ready"):

@@ -169,8 +169,9 @@ class WhatsAppDispatcher(BaseDispatcher):
     Direct WhatsApp Dispatcher using the local WhatsApp Web bridge.
     Sends messages directly from your personal/business WhatsApp account.
     """
-    def __init__(self, bridge_url: str = "http://localhost:3000"):
-        self.bridge_url = bridge_url
+    def __init__(self, bridge_url: str = None):
+        import os
+        self.bridge_url = bridge_url or os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:3005")
         self.last_error = None
 
     def send(self, to: str, message: str, client_info: Dict[str, Any]) -> bool:

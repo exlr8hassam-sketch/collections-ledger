@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
     res.json({ status: 'WhatsApp Bridge Online', ready: isReady });
 });
 
-const PORT = process.env.BRIDGE_PORT || 3000;
+const PORT = process.env.BRIDGE_PORT || 3005;
 let isReady = false;
 let currentQrData = null;
 let client = null;

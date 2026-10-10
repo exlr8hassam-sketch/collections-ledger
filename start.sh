@@ -8,9 +8,9 @@ if [ -f "$DIR/whatsapp-bridge/session.tar.gz" ] && [ ! -d "$DIR/whatsapp-bridge/
     tar -xzf "$DIR/whatsapp-bridge/session.tar.gz" -C "$DIR/whatsapp-bridge"
 fi
 
-echo "[+] Starting WhatsApp Web Bridge on internal port 3000..."
+echo "[+] Starting WhatsApp Web Bridge on internal port 3005..."
 cd "$DIR/whatsapp-bridge"
-BRIDGE_PORT=3000 node server.js &
+BRIDGE_PORT=3005 node server.js &
 
 PUBLIC_PORT="${PORT:-8000}"
 echo "[+] Starting Collections Ledger Dashboard on port $PUBLIC_PORT..."
